@@ -42,6 +42,13 @@ import {
   agentConfigurationDoc as openclawGatewayAgentConfigurationDoc,
   models as openclawGatewayModels,
 } from "@paperclipai/adapter-openclaw-gateway";
+import {
+  execute as proxyAPIExecute,
+  testEnvironment as proxyAPITestEnvironment,
+} from "@paperclipai/adapter-proxy-api/server";
+import {
+  agentConfigurationDoc as proxyAPIAgentConfigurationDoc,
+} from "@paperclipai/adapter-proxy-api";
 import { listCodexModels } from "./codex-models.js";
 import { listCursorModels } from "./cursor-models.js";
 import {
@@ -118,6 +125,14 @@ const openclawGatewayAdapter: ServerAdapterModule = {
   agentConfigurationDoc: openclawGatewayAgentConfigurationDoc,
 };
 
+const proxyAPIAdapter: ServerAdapterModule = {
+  type: "proxy_api",
+  execute: proxyAPIExecute,
+  testEnvironment: proxyAPITestEnvironment,
+  supportsLocalAgentJwt: false,
+  agentConfigurationDoc: proxyAPIAgentConfigurationDoc,
+};
+
 const openCodeLocalAdapter: ServerAdapterModule = {
   type: "opencode_local",
   execute: openCodeExecute,
@@ -159,6 +174,7 @@ const adaptersByType = new Map<string, ServerAdapterModule>(
     cursorLocalAdapter,
     geminiLocalAdapter,
     openclawGatewayAdapter,
+    proxyAPIAdapter,
     hermesLocalAdapter,
     processAdapter,
     httpAdapter,
