@@ -28,6 +28,7 @@ describe("ProxyAPIAdapter execute", () => {
         apiKey: "sk-test",
       },
       context: {},
+      runtime: { sessionId: "session-1" },
       runId: "run-1",
       onLog: vi.fn(),
     };
@@ -48,6 +49,7 @@ describe("ProxyAPIAdapter execute", () => {
         provider: "openai",
       },
       context: {},
+      runtime: { sessionId: "session-2" },
       runId: "run-1",
       onLog: vi.fn(),
     };

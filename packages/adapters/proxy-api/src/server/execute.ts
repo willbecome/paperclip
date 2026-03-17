@@ -5,11 +5,44 @@ import type {
   AdapterExecutionContext,
   AdapterExecutionResult,
 } from "@paperclipai/adapter-utils";
+import { promises as fs, existsSync, mkdirSync } from "node:fs";
+import * as path from "node:path";
 import {
   asString,
   renderTemplate,
   joinPromptSections,
 } from "@paperclipai/adapter-utils/server-utils";
+
+async function logAgentState(
+  config: Record<string, unknown>,
+  sessionId: string,
+  state: "idle" | "typing" | "reading" | "tool_use",
+  details: any = {},
+) {
+  const logEntry = {
+    timestamp: new Date().toISOString(),
+    session_id: sessionId,
+    state: state,
+    model: asString(config.model, ""),
+    provider: asString(config.provider, "openai"),
+    ...details,
+  };
+
+  const cwd = asString(config.cwd, "") || process.cwd();
+  const logDir = path.join(cwd, ".paperclip", "logs");
+
+  try {
+    if (!existsSync(logDir)) {
+      mkdirSync(logDir, { recursive: true });
+    }
+
+    const logPath = path.join(logDir, `${sessionId}.jsonl`);
+    await fs.appendFile(logPath, `${JSON.stringify(logEntry)}\n`);
+  } catch (err) {
+    // Non-blocking error for logging
+    console.warn(`[proxy-api] Failed to log agent state: ${err}`);
+  }
+}
 
 export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExecutionResult> {
   const { agent, config, context } = ctx;
@@ -44,7 +77,11 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
   const sessionHandoffNote = asString(context.paperclipSessionHandoffMarkdown, "").trim();
   const prompt = joinPromptSections([sessionHandoffNote, renderedPrompt]);
 
+  const sessionId = ctx.runtime.sessionId || "default-agent";
+
   try {
+    await logAgentState(config, sessionId, "typing", { action: "generating_response" });
+
     let resultText = "";
     let usage = { inputTokens: 0, outputTokens: 0 };
 
@@ -74,7 +111,11 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
         messages: [{ role: "user", content: prompt }],
       });
 
-      resultText = response.content[0].type === "text" ? response.content[0].text : "";
+      const firstContent = response.content[0];
+      if (firstContent && firstContent.type === "text") {
+        resultText = firstContent.text;
+      }
+
       usage = {
         inputTokens: response.usage.input_tokens,
         outputTokens: response.usage.output_tokens,
@@ -115,5 +156,7 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
       errorMessage: message,
       errorCode: "proxy_api_execution_failed",
     };
+  } finally {
+    await logAgentState(config, sessionId, "idle");
   }
 }
