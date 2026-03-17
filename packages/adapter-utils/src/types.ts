@@ -120,6 +120,7 @@ export interface AdapterExecutionContext {
   context: Record<string, unknown>;
   onLog: (stream: "stdout" | "stderr", chunk: string) => Promise<void>;
   onMeta?: (meta: AdapterInvocationMeta) => Promise<void>;
+  onStateUpdate?: (state: string, details?: any) => Promise<void>;
   authToken?: string;
 }
 

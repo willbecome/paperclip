@@ -80,7 +80,9 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
   const sessionId = ctx.runtime.sessionId || "default-agent";
 
   try {
-    await logAgentState(config, sessionId, "typing", { action: "generating_response" });
+    const logPromise = logAgentState(config, sessionId, "typing", { action: "generating_response" });
+    const updatePromise = ctx.onStateUpdate?.("typing", { action: "generating_response", provider });
+    await Promise.all([logPromise, updatePromise].filter(Boolean));
 
     let resultText = "";
     let usage = { inputTokens: 0, outputTokens: 0 };
@@ -149,6 +151,9 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     await ctx.onLog("stderr", `[proxy-api] Execution failed: ${message}\n`);
+
+    await ctx.onStateUpdate?.("error", { error: message });
+
     return {
       exitCode: 1,
       signal: null,
@@ -157,6 +162,8 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
       errorCode: "proxy_api_execution_failed",
     };
   } finally {
-    await logAgentState(config, sessionId, "idle");
+    const logPromise = logAgentState(config, sessionId, "idle");
+    const updatePromise = ctx.onStateUpdate?.("idle");
+    await Promise.all([logPromise, updatePromise].filter(Boolean));
   }
 }

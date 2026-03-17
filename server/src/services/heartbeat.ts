@@ -1865,6 +1865,17 @@ export function heartbeatService(db: Db) {
         context,
         onLog,
         onMeta: onAdapterMeta,
+        onStateUpdate: async (state, details) => {
+          publishLiveEvent({
+            companyId: agent.companyId,
+            type: "agent.status",
+            payload: {
+              agentId: agent.id,
+              status: state,
+              details,
+            },
+          });
+        },
         authToken: authToken ?? undefined,
       });
       const adapterManagedRuntimeServices = adapterResult.runtimeServices

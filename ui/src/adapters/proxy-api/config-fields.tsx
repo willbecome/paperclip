@@ -31,6 +31,7 @@ export function ProxyAPIConfigFields({
       <Field label="Provider" hint="Select the AI provider for this adapter.">
         <select
           className={inputClass}
+          data-testid="proxy-provider-select"
           value={currentProvider}
           onChange={(e) => {
             const v = e.target.value;
@@ -47,6 +48,7 @@ export function ProxyAPIConfigFields({
 
       <Field label="Model Name" hint="Example: gpt-4o, claude-3-5-sonnet-20241022, gemini-1.5-pro, llama3">
         <DraftInput
+          data-testid="proxy-model-input"
           value={
             isCreate
               ? values!.model ?? ""
