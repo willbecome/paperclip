@@ -18,4 +18,10 @@ Core fields:
 - baseURL (string, optional): Custom API base URL (especially for Ollama or local proxies).
 - promptTemplate (string, optional): Run prompt template.
 - maxTurnsPerRun (number, optional): Max turns for one run.
+
+Examples:
+- OpenAI: provider=openai, model=gpt-4o, apiKey=sk-...
+- Ollama: provider=ollama, model=llama3, baseURL=http://localhost:11434/v1
+
+For more details, see doc/PROXY-API-SETUP.md.
 `;
