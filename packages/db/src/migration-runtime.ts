@@ -151,13 +151,27 @@ async function ensureEmbeddedPostgresConnection(
       );
     }
   }
-  if (existsSync(postmasterPidFile)) {
-    rmSync(postmasterPidFile, { force: true });
+  const staleFiles = [
+    postmasterPidFile,
+    path.resolve(dataDir, "postmaster.opts"),
+  ];
+  for (const file of staleFiles) {
+    if (existsSync(file)) {
+      try {
+        rmSync(file, { force: true });
+      } catch (err) {
+        console.warn(`[db] Could not remove stale file ${file}: ${err}`);
+      }
+    }
   }
+
   try {
     await instance.start();
   } catch (error) {
-    throw toError(error, `Failed to start embedded PostgreSQL on port ${selectedPort}`);
+    throw toError(
+      error,
+      `Failed to start embedded PostgreSQL on port ${selectedPort} (dataDir=${dataDir})`,
+    );
   }
 
   const adminConnectionString = `postgres://paperclip:paperclip@127.0.0.1:${selectedPort}/postgres`;
