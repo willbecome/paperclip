@@ -30,15 +30,9 @@ export type MigrationConnection = {
 };
 
 function toError(error: unknown, fallbackMessage: string): Error {
-  if (error instanceof Error) return error;
-  if (error === undefined) return new Error(fallbackMessage);
-  if (typeof error === "string") return new Error(`${fallbackMessage}: ${error}`);
-
-  try {
-    return new Error(`${fallbackMessage}: ${JSON.stringify(error)}`);
-  } catch {
-    return new Error(`${fallbackMessage}: ${String(error)}`);
-  }
+  const message = error instanceof Error ? error.message : String(error);
+  const detail = error instanceof Error ? "" : `: ${JSON.stringify(error)}`;
+  return new Error(`${fallbackMessage}. Detail: ${message}${detail}`);
 }
 
 function readRunningPostmasterPid(postmasterPidFile: string): number | null {
@@ -151,13 +145,34 @@ async function ensureEmbeddedPostgresConnection(
       );
     }
   }
-  if (existsSync(postmasterPidFile)) {
-    rmSync(postmasterPidFile, { force: true });
+  const staleFiles = [
+    postmasterPidFile,
+    path.resolve(dataDir, "postmaster.opts"),
+  ];
+  for (const file of staleFiles) {
+    if (existsSync(file)) {
+      try {
+        rmSync(file, { force: true });
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        if (message.includes("EBUSY") || message.includes("resource busy")) {
+          throw new Error(
+            `Cannot start PostgreSQL: file ${file} is locked by another process. Please close any other Paperclip instances or PostgreSQL processes.`,
+          );
+        }
+        console.warn(`[db] Could not remove stale file ${file}: ${err}`);
+      }
+    }
   }
+
   try {
+    console.log(`[db] Starting embedded PostgreSQL on port ${selectedPort}...`);
     await instance.start();
   } catch (error) {
-    throw toError(error, `Failed to start embedded PostgreSQL on port ${selectedPort}`);
+    throw toError(
+      error,
+      `Failed to start embedded PostgreSQL on port ${selectedPort} (dataDir=${dataDir})`,
+    );
   }
 
   const adminConnectionString = `postgres://paperclip:paperclip@127.0.0.1:${selectedPort}/postgres`;

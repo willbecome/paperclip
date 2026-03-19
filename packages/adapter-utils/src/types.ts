@@ -120,6 +120,7 @@ export interface AdapterExecutionContext {
   context: Record<string, unknown>;
   onLog: (stream: "stdout" | "stderr", chunk: string) => Promise<void>;
   onMeta?: (meta: AdapterInvocationMeta) => Promise<void>;
+  onStateUpdate?: (state: string, details?: any) => Promise<void>;
   authToken?: string;
 }
 
@@ -294,4 +295,7 @@ export interface CreateConfigValues {
   maxTurnsPerRun: number;
   heartbeatEnabled: boolean;
   intervalSec: number;
+  provider?: string;
+  apiKey?: string;
+  baseURL?: string;
 }
